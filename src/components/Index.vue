@@ -16,15 +16,12 @@
     created () {
       console.debug(this.openid)
       this.$axios.get(this.tokenUrl, {params: {username: this.openid}}).then((res) => {
-        if (res.status === 200) {
-          if (res.data.access_token) {
-            sessionStorage.setItem('token', res.data.access_token)
-            this.$router.push('/lab')
-          } else {
-            this.$router.push('/register')
-          }
-        } else {
-          console.debug('登录失败：' + res.data.status)
+        sessionStorage.setItem('token', res.data.access_token)
+        this.$router.push('/lab')
+      }).catch((error) => {
+        console.debug(error.response)
+        if (error.response.status === 400) {
+          this.$router.push({path: '/register', query: {username: this.openid}})
         }
       })
     }

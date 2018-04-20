@@ -5,10 +5,13 @@ import FastClick from 'fastclick'
 import VueRouter from 'vue-router'
 import App from './App'
 import axios from 'axios'
+import { ToastPlugin } from 'vux'
 
 Vue.prototype.$baseUrl = 'http://127.0.0.1:8080'
 Vue.prototype.$axios = axios
 Vue.use(VueRouter)
+
+Vue.use(ToastPlugin)
 
 const routes = [{
   path: '/',
@@ -71,7 +74,7 @@ axios.interceptors.response.use(response => {
         // 返回 401 清除token信息并跳转到登录页面
         sessionStorage.removeItem('token')
         router.replace({
-          path: '/login',
+          path: '/',
           query: {redirect: router.currentRoute.fullPath}
         })
         break
@@ -79,6 +82,8 @@ axios.interceptors.response.use(response => {
         console.debug(error.response)
         console.debug('无操作权限')
         break
+      case 500:
+        Vue.$vux.toast.text(error.response.data)
     }
   } else {
     console.debug('网络连接失败，请检查')
