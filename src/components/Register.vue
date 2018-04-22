@@ -14,7 +14,7 @@
 </template>
 
 <script>
-  import { Box, Divider, Group, XInput, XButton, Selector, Toast } from 'vux'
+  import {Box, Divider, Group, XInput, XButton, Selector, Toast} from 'vux'
 
   export default {
     components: {
@@ -54,7 +54,7 @@
         this.loading = true
         this.$axios.post(this.addUrl, this.form).then((res) => {
           this.loading = false
-          this.$vux.toast.text('资料绑定微信成功')
+          this.$vux.toast.text('资料绑定微信成功，开始使用。')
           this.$router.push('/lab')
         }).catch((error) => {
           this.loading = false

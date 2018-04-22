@@ -1,7 +1,7 @@
 {
-  "name": "web",
+  "name": "booking-lab",
   "version": "1.0.0",
-  "description": "A Vue.js project",
+  "description": "预约实验室",
   "author": "pengyi <463508232@qq.com>",
   "private": true,
   "scripts": {

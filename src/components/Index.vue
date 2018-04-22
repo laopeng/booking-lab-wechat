@@ -1,8 +1,18 @@
 <template>
+  <div style="height: 200px;line-height: 200px">
+    <p style="text-align:center;">
+      <inline-loading></inline-loading>
+    </p>
+  </div>
 </template>
 
 <script>
+  import {InlineLoading} from 'vux'
+
   export default {
+    components: {
+      InlineLoading
+    },
     data () {
       return {
         // note: changing this line won't causes changes
@@ -14,27 +24,22 @@
       }
     },
     created () {
-      console.debug(this.openid)
-      this.$axios.get(this.tokenUrl, {params: {username: this.openid}}).then((res) => {
-        sessionStorage.setItem('token', res.data.access_token)
-        this.$router.push('/lab')
-      }).catch((error) => {
-        console.debug(error.response)
-        if (error.response.status === 400) {
-          this.$router.push({path: '/register', query: {username: this.openid}})
-        }
-      })
+      if (this.openid) {
+        console.debug(this.openid)
+        this.$axios.get(this.tokenUrl, {params: {username: this.openid}}).then((res) => {
+          sessionStorage.setItem('token', res.data.access_token)
+          this.$router.push('/lab')
+        }).catch((error) => {
+          console.debug(error.response)
+          if (error.response.status === 400) {
+            this.$router.push({path: '/register', query: {username: this.openid}})
+          }
+        })
+      }
     }
   }
 </script>
 
 <style>
-  .vux-demo {
-    text-align: center;
-  }
 
-  .logo {
-    width: 100px;
-    height: 100px
-  }
 </style>
