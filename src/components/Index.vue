@@ -7,7 +7,7 @@
 </template>
 
 <script>
-  import {InlineLoading} from 'vux'
+  import { InlineLoading } from 'vux'
 
   export default {
     components: {
@@ -26,6 +26,7 @@
     created () {
       if (this.openid) {
         console.debug(this.openid)
+        sessionStorage.setItem('openid', this.openid)
         this.$axios.get(this.tokenUrl, {params: {username: this.openid}}).then((res) => {
           sessionStorage.setItem('token', res.data.access_token)
           this.$router.push('/lab')

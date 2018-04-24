@@ -5,13 +5,14 @@ import FastClick from 'fastclick'
 import VueRouter from 'vue-router'
 import App from './App'
 import axios from 'axios'
-import { ToastPlugin } from 'vux'
+import { ToastPlugin, LoadingPlugin } from 'vux'
 
 Vue.prototype.$baseUrl = 'http://127.0.0.1:8080'
 Vue.prototype.$axios = axios
 Vue.use(VueRouter)
 
 Vue.use(ToastPlugin)
+Vue.use(LoadingPlugin)
 
 const routes = [{
   path: '/',
@@ -37,7 +38,7 @@ router.beforeEach((to, from, next) => {
     } else {
       next({
         path: '/',
-        query: {redirect: to.fullPath} // 将跳转的路由path作为参数，登录成功后跳转到该路由
+        query: {openid: sessionStorage.getItem('openid')}
       })
     }
   } else {
@@ -55,26 +56,33 @@ Vue.config.productionTip = false
 
 // 发起网络请求拦截器
 axios.interceptors.request.use(config => {
+  Vue.$vux.loading.show({
+    text: 'loading'
+  })
   const token = sessionStorage.getItem('token')
   if (token) {  // 判断是否存在token，如果存在的话，则每个http header都加上token
     config.headers.Authorization = 'Bearer ' + token
   }
+  config.headers.Accept = 'application/json'
   return config
 }, error => {
+  Vue.$vux.loading.hide()
   return Promise.reject(error)
 })
 
 // 网络请求返回结果拦截器
 axios.interceptors.response.use(response => {
+  Vue.$vux.loading.hide()
   return response
 }, error => {
+  Vue.$vux.loading.hide()
   if (error.response) {
     switch (error.response.status) {
       case 401:
         // 返回 401 清除token信息并跳转到登录页面
         sessionStorage.removeItem('token')
         router.replace({
-          path: '/',
+          path: '/?openid=' + sessionStorage.getItem('openid'),
           query: {redirect: router.currentRoute.fullPath}
         })
         break
