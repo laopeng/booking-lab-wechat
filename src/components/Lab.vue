@@ -17,43 +17,110 @@
               default-item-class="item"
               selected-item-class="item-selected" disabled-item-class="item-disabled">
               <checker-item v-for="(item3, i) in labStatus.slice(index2, index2 + 3)" :key="i"
-                            :value="item3" :disabled="item3.status !== '可用'">{{item3.id.bookingTimeRang}}</checker-item>
+                            :value="item3" :disabled="item3.status !== '可用'"
+                            @on-item-click="onCheckerItemClick">{{item3.id.bookingTimeRang}}</checker-item>
             </checker>
             <br/>
           </span>
         </div>
       </swiper-item>
     </swiper>
+    <div v-transfer-dom>
+      <popup v-model="showTeacher" height="580px" is-transparent :hide-on-blur="false">
+        <div
+          style="width: 95%;background-color:#fff;height:560px;margin:0 auto;border-radius:5px;">
+          <group>
+            <radio :options="teachers" v-model="teacher">
+              <template slot-scope="props" slot="each-item"><!-- use scope="props" when vue < 2.5.0 -->
+                <p>
+                  {{ props.label }}
+                </p>
+              </template>
+            </radio>
+          </group>
+          <div style="padding:20px 15px;">
+            <x-button type="primary" @click.native="confirmTeacher">确定</x-button>
+            <x-button @click.native="cancelTeacher">取消</x-button>
+          </div>
+        </div>
+      </popup>
+    </div>
+    <div v-transfer-dom>
+      <confirm v-model="showConfirm" title="请确认以下信息" @on-cancel="cancelConfirm" @on-confirm="confirmData">
+        <group>
+          <cell :title="cellTitle + '实验室'"></cell>
+          <cell-form-preview :list="listLabStatus"></cell-form-preview>
+        </group>
+      </confirm>
+    </div>
   </div>
 </template>
 
 <script>
-  import { Tab, TabItem, Swiper, SwiperItem, Divider, Checker, CheckerItem } from 'vux'
+  import {
+    TransferDom,
+    Popup,
+    Tab,
+    TabItem,
+    Swiper,
+    SwiperItem,
+    Divider,
+    Checker,
+    CheckerItem,
+    Group,
+    Cell,
+    XButton,
+    Radio,
+    Confirm,
+    CellFormPreview
+  } from 'vux'
   let map = new Map()
 
   export default {
+    directives: {
+      TransferDom
+    },
     components: {
+      Popup,
       Tab,
       TabItem,
       Swiper,
       SwiperItem,
       Divider,
       Checker,
-      CheckerItem
+      CheckerItem,
+      Group,
+      Cell,
+      XButton,
+      Radio,
+      Confirm,
+      CellFormPreview
     },
     data () {
       return {
         labsUrl: this.$baseUrl + '/labs',
         labStatusUrl: this.$baseUrl + '/lab/status',
+        teachersUrl: this.$baseUrl + '/teachers',
         labs: [],
         labStatus: [],
-        demo2: '美食',
+        chooseLab: null,
+        teachers: [],
+        teacher: null,
         index: 0,
-        chooseLab: null
+        showTeacher: false,
+        showConfirm: false,
+        listLabStatus: [],
+        cellTitle: null,
+        form: {
+          labStatusId: null,
+          teacherName: null
+        },
+        demo2: null
       }
     },
     created () {
       this.getLabs()
+      this.getTeachers()
     },
     methods: {
       getLabs () {
@@ -77,9 +144,57 @@
           this.labStatus = map.get(name)
         }
       },
+      getTeachers () {
+        this.$axios.get(this.teachersUrl).then((res) => {
+          this.teachers = res.data
+        }).catch((error) => {
+          console.debug(error.response)
+        })
+      },
       onItemClick (index) {
         console.log('on item click:', index)
         this.getLabStatusMap(this.labs[index].name)
+      },
+      onCheckerItemClick (itemValue, itemDisabled) {
+        this.showTeacher = true
+        this.chooseLab = itemValue
+        console.log('onCheckerItemClick:', this.chooseLab)
+      },
+      cancelTeacher () {
+        this.chooseLab = null
+        this.teacher = null
+        this.showTeacher = false
+      },
+      confirmTeacher () {
+        if (!this.teacher) {
+          this.$vux.toast.text('请选择指导教师！')
+          return
+        }
+        this.showTeacher = false
+        this.showConfirm = true
+        this.cellTitle = this.chooseLab.id.lab.name
+        this.listLabStatus = [
+          {
+            label: '时间段',
+            value: this.chooseLab.id.bookingTimeRang
+          }, {
+            label: '指导教师',
+            value: this.teacher
+          }
+        ]
+      },
+      cancelConfirm () {
+        this.chooseLab = null
+        this.teacher = null
+      },
+      confirmData () {
+        this.form.labStatusId = this.chooseLab
+        this.form.teacherName = this.teacher
+        this.$axios.put(this.labStatusUrl, this.form).then((res) => {
+          this.$vux.toast.text(res.data)
+        }).catch((error) => {
+          console.debug(error.response)
+        })
       }
     }
   }
