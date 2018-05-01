@@ -1,24 +1,27 @@
 <template>
   <div>
     <tab :line-width=2 active-color='#fc378c ' v-model="index">
-      <tab-item class="vux-center" :selected="demo2 === item.name" v-for="(item, index) in labs" :key="index"
+      <tab-item class="vux-center" :selected="currentLabName === item.name" v-for="(item, index) in labs" :key="index"
                 @on-item-click="onItemClick">
         {{item.name}}
       </tab-item>
     </tab>
     <swiper v-model="index" height="1200px" :show-dots="false">
       <swiper-item v-for="(item, index) in labs" :key="index">
+        <form-preview v-if="currentLab" header-label="你的预约实验室" :header-value="currentLabName" :body-items="listCurrentLabStatus" :footer-buttons="cancelCurrent"></form-preview>
         <div v-for="(item2, index2) in labStatus" :key="index2">
           <span v-if="index2 % 3 === 0">
             <br/>
             <divider>{{item2.id.bookingDate}}</divider>
             <checker
-              v-model="chooseLab"
+              :value="chooseLab"
               default-item-class="item"
-              selected-item-class="item-selected" disabled-item-class="item-disabled">
+              disabled-item-class="item-disabled">
               <checker-item v-for="(item3, i) in labStatus.slice(index2, index2 + 3)" :key="i"
                             :value="item3" :disabled="item3.status !== '可用'"
-                            @on-item-click="onCheckerItemClick">{{item3.id.bookingTimeRang}}</checker-item>
+                            @on-item-click="onCheckerItemClick">
+                {{item3.id.bookingTimeRang + (item3.student === null ? "" : '(['+ item3.student.name+'])')}}
+              </checker-item>
             </checker>
             <br/>
           </span>
@@ -49,7 +52,7 @@
       <confirm v-model="showConfirm" title="请确认以下信息" @on-cancel="cancelConfirm" @on-confirm="confirmData">
         <group>
           <cell :title="cellTitle + '实验室'"></cell>
-          <cell-form-preview :list="listLabStatus"></cell-form-preview>
+          <cell-form-preview :list="listChooseLabStatus"></cell-form-preview>
         </group>
       </confirm>
     </div>
@@ -72,7 +75,8 @@
     XButton,
     Radio,
     Confirm,
-    CellFormPreview
+    CellFormPreview,
+    FormPreview
   } from 'vux'
   let map = new Map()
 
@@ -94,12 +98,14 @@
       XButton,
       Radio,
       Confirm,
-      CellFormPreview
+      CellFormPreview,
+      FormPreview
     },
     data () {
       return {
         labsUrl: this.$baseUrl + '/labs',
         labStatusUrl: this.$baseUrl + '/lab/status',
+        currentUrl: this.$baseUrl + '/lab/status/current',
         teachersUrl: this.$baseUrl + '/teachers',
         labs: [],
         labStatus: [],
@@ -109,13 +115,40 @@
         index: 0,
         showTeacher: false,
         showConfirm: false,
-        listLabStatus: [],
+        listChooseLabStatus: [],
         cellTitle: null,
         form: {
-          labStatusId: null,
-          teacherName: null
+          id: null,
+          teacher: {
+            name: null
+          }
         },
-        demo2: null
+        currentLab: null,
+        currentLabName: null,
+        listCurrentLabStatus: [],
+        cancelCurrent: [{
+          style: 'primary',
+          text: '取消预约',
+          onButtonClick: () => {
+            const _this = this
+            this.$vux.confirm.show({
+              title: '取消预约',
+              content: '你已经预约了【' + this.currentLabName + '(' + this.currentLab.audit + ')】' + (this.currentLab.audit === '通过' ? ',并且已经通过了审核，取消在三天内不能再次预约' : '') + '，确定要取消吗？',
+              // 组件除show外的属性
+              onCancel () {
+                _this.getCurrent()// 刷新选课状态
+              },
+              onConfirm () {
+                _this.$axios.delete(_this.currentUrl).then((res) => {
+                  _this.getCurrent()// 刷新选课状态
+                  _this.$vux.toast.text(res.data)
+                }).catch((error) => {
+                  console.debug(error.response)
+                })
+              }
+            })
+          }
+        }]
       }
     },
     created () {
@@ -126,23 +159,51 @@
       getLabs () {
         this.$axios.get(this.labsUrl).then((res) => {
           this.labs = res.data
-          // 查询实验室状态
-          this.getLabStatusMap(this.labs[0].name)
+          // 查询当前学生的选课
+          this.getCurrent()
         }).catch((error) => {
           console.debug(error.response)
         })
       },
       getLabStatusMap (name) {
-        if (!map.has(name)) {
-          this.$axios.get(this.labStatusUrl, {params: {name: name, sort: 'idBookingDate,asc'}}).then((res) => {
-            map.set(name, res.data)
-            this.labStatus = res.data
-          }).catch((error) => {
-            console.debug(error.response)
-          })
-        } else {
-          this.labStatus = map.get(name)
-        }
+        this.$axios.get(this.labStatusUrl, {params: {name: name, sort: 'idBookingDate,asc'}}).then((res) => {
+          map.set(name, res.data)
+          this.labStatus = res.data
+        }).catch((error) => {
+          console.debug(error.response)
+        })
+      },
+      getCurrent () {
+        this.$axios.get(this.currentUrl).then((res) => {
+          if (res.data) {
+            this.currentLab = res.data
+            this.currentLabName = res.data.id.lab.name
+            this.listCurrentLabStatus = [
+              {
+                label: '日期',
+                value: this.currentLab.id.bookingDate
+              },
+              {
+                label: '时间段',
+                value: this.currentLab.id.bookingTimeRang
+              }, {
+                label: '指导教师',
+                value: this.currentLab.teacher.name
+              }, {
+                label: '审核状态',
+                value: this.currentLab.audit
+              }
+            ]
+            // 查询实验室状态
+            this.getLabStatusMap(this.currentLabName)
+          } else {
+            // 查询实验室状态
+            this.getLabStatusMap(this.labs[0].name)
+            this.currentLab = null
+          }
+        }).catch((error) => {
+          console.debug(error.response)
+        })
       },
       getTeachers () {
         this.$axios.get(this.teachersUrl).then((res) => {
@@ -156,9 +217,28 @@
         this.getLabStatusMap(this.labs[index].name)
       },
       onCheckerItemClick (itemValue, itemDisabled) {
-        this.showTeacher = true
-        this.chooseLab = itemValue
-        console.log('onCheckerItemClick:', this.chooseLab)
+        if (!itemDisabled) {
+          if (this.currentLabName) {
+            const _this = this
+            this.$vux.confirm.show({
+              title: '重新预约',
+              content: '你已经预约了【' + this.currentLabName + '】，确定要取消并重新预约其他实验室？',
+            // 组件除show外的属性
+              onCancel () {
+                _this.getCurrent()// 刷新选课状态
+              },
+              onConfirm () {
+                _this.showTeacher = true
+                _this.chooseLab = itemValue
+                console.log('onCheckerItemClick:', _this.chooseLab)
+              }
+            })
+          } else {
+            this.showTeacher = true
+            this.chooseLab = itemValue
+            console.log('onCheckerItemClick:', this.chooseLab)
+          }
+        }
       },
       cancelTeacher () {
         this.chooseLab = null
@@ -173,7 +253,11 @@
         this.showTeacher = false
         this.showConfirm = true
         this.cellTitle = this.chooseLab.id.lab.name
-        this.listLabStatus = [
+        this.listChooseLabStatus = [
+          {
+            label: '日期',
+            value: this.chooseLab.id.bookingDate
+          },
           {
             label: '时间段',
             value: this.chooseLab.id.bookingTimeRang
@@ -188,9 +272,13 @@
         this.teacher = null
       },
       confirmData () {
-        this.form.labStatusId = this.chooseLab
-        this.form.teacherName = this.teacher
+        this.form.id = this.chooseLab.id
+        this.form.teacher.name = this.teacher
+        console.debug(this.form)
+        this.chooseLab = null
+        this.teacher = null
         this.$axios.put(this.labStatusUrl, this.form).then((res) => {
+          this.getCurrent()// 刷新选课状态
           this.$vux.toast.text(res.data)
         }).catch((error) => {
           console.debug(error.response)

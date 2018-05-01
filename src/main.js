@@ -5,7 +5,7 @@ import FastClick from 'fastclick'
 import VueRouter from 'vue-router'
 import App from './App'
 import axios from 'axios'
-import { ToastPlugin, LoadingPlugin } from 'vux'
+import { ToastPlugin, LoadingPlugin, ConfirmPlugin } from 'vux'
 
 Vue.prototype.$baseUrl = 'http://127.0.0.1:8080'
 Vue.prototype.$axios = axios
@@ -13,6 +13,7 @@ Vue.use(VueRouter)
 
 Vue.use(ToastPlugin)
 Vue.use(LoadingPlugin)
+Vue.use(ConfirmPlugin)
 
 const routes = [{
   path: '/',
@@ -94,7 +95,7 @@ axios.interceptors.response.use(response => {
         Vue.$vux.toast.text(error.response.data)
     }
   } else {
-    console.debug('网络连接失败，请检查')
+    console.debug('网络连接失败，请检查', error)
   }
   return Promise.reject(error)
 })
