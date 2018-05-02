@@ -8,7 +8,8 @@
     </tab>
     <swiper v-model="index" height="1200px" :show-dots="false">
       <swiper-item v-for="(item, index) in labs" :key="index">
-        <form-preview v-if="currentLab" header-label="你的预约实验室" :header-value="currentLabName" :body-items="listCurrentLabStatus" :footer-buttons="cancelCurrent"></form-preview>
+        <form-preview v-if="currentLab" header-label="你的预约实验室" :header-value="currentLabName"
+                      :body-items="listCurrentLabStatus" :footer-buttons="cancelCurrent"></form-preview>
         <div v-for="(item2, index2) in labStatus" :key="index2">
           <span v-if="index2 % 3 === 0">
             <br/>
@@ -20,7 +21,7 @@
               <checker-item v-for="(item3, i) in labStatus.slice(index2, index2 + 3)" :key="i"
                             :value="item3" :disabled="item3.status !== '可用'"
                             @on-item-click="onCheckerItemClick">
-                {{item3.id.bookingTimeRang + (item3.student === null ? "" : '(['+ item3.student.name+'])')}}
+                {{item3.id.bookingTimeRang + (item3.student === null ? "" : '(' + item3.student.name + ')')}}
               </checker-item>
             </checker>
             <br/>
@@ -223,7 +224,7 @@
             this.$vux.confirm.show({
               title: '重新预约',
               content: '你已经预约了【' + this.currentLabName + '】，确定要取消并重新预约其他实验室？',
-            // 组件除show外的属性
+              // 组件除show外的属性
               onCancel () {
                 _this.getCurrent()// 刷新选课状态
               },
