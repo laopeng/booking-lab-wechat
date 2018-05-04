@@ -138,10 +138,14 @@
               // 组件除show外的属性
               onCancel () {
                 _this.getCurrent()// 刷新选课状态
+                _this.currentLab = null
+                _this.currentLabName = null
               },
               onConfirm () {
                 _this.$axios.delete(_this.currentUrl).then((res) => {
                   _this.getCurrent()// 刷新选课状态
+                  _this.currentLab = null
+                  _this.currentLabName = null
                   _this.$vux.toast.text(res.data)
                 }).catch((error) => {
                   console.debug(error.response)
