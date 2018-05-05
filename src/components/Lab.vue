@@ -10,6 +10,9 @@
       <swiper-item v-for="(item, index) in labs" :key="index">
         <form-preview v-if="currentLab" header-label="你的预约实验室" :header-value="currentLabName"
                       :body-items="listCurrentLabStatus" :footer-buttons="cancelCurrent"></form-preview>
+        <p style="padding: 10px" v-if="labStatusLog">
+          {{labStatusLog}}
+        </p>
         <div v-for="(item2, index2) in labStatus" :key="index2">
           <span v-if="index2 % 3 === 0">
             <br/>
@@ -108,6 +111,8 @@
         labStatusUrl: this.$baseUrl + '/lab/status',
         currentUrl: this.$baseUrl + '/lab/status/current',
         teachersUrl: this.$baseUrl + '/teachers',
+        currentStudentUrl: this.$baseUrl + '/students/current',
+        labStatusLogUrl: this.$baseUrl + '/labStatusLogs/current',
         labs: [],
         labStatus: [],
         chooseLab: null,
@@ -124,31 +129,40 @@
             name: null
           }
         },
+        currentStudent: null,
         currentLab: null,
         currentLabName: null,
+        labStatusLog: null,
         listCurrentLabStatus: [],
         cancelCurrent: [{
           style: 'primary',
           text: '取消预约',
           onButtonClick: () => {
-            const _this = this
-            this.$vux.confirm.show({
-              title: '取消预约',
-              content: '你已经预约了【' + this.currentLabName + '(' + this.currentLab.audit + ')】' + (this.currentLab.audit === '通过' ? ',并且已经通过了审核，取消在三天内不能再次预约' : '') + '，确定要取消吗？',
-              // 组件除show外的属性
-              onCancel () {
-                _this.getCurrent()// 刷新选课状态
-                _this.currentLab = null
-                _this.currentLabName = null
-              },
-              onConfirm () {
-                _this.$axios.delete(_this.currentUrl).then((res) => {
-                  _this.getCurrent()// 刷新选课状态
-                  _this.currentLab = null
-                  _this.currentLabName = null
-                  _this.$vux.toast.text(res.data)
-                }).catch((error) => {
-                  console.debug(error.response)
+            this.$axios.get(this.currentUrl).then((res) => { // 取消预约前先检验是否通过审核
+              if (res.data) {
+                this.currentLab = res.data
+
+                const _this = this
+                this.$vux.confirm.show({
+                  title: '取消预约',
+                  content: '你已经预约了【' + this.currentLabName + '(' + this.currentLab.audit + ')】' + (this.currentLab.audit === '通过' ? ',并且已经通过了审核，取消在三天内不能再次预约' : '') + '，确定要取消吗？',
+                  // 组件除show外的属性
+                  onCancel () {
+                    _this.getCurrent()// 刷新选课状态
+                    _this.currentLab = null
+                    _this.currentLabName = null
+                  },
+                  onConfirm () {
+                    _this.$axios.delete(_this.currentUrl).then((res) => {
+                      _this.getCurrentStudent()
+                      _this.getLabs()
+                      _this.currentLab = null
+                      _this.currentLabName = null
+                      _this.$vux.toast.text(res.data)
+                    }).catch((error) => {
+                      console.debug(error.response)
+                    })
+                  }
                 })
               }
             })
@@ -157,10 +171,16 @@
       }
     },
     created () {
+      this.getCurrentStudent()
       this.getLabs()
       this.getTeachers()
     },
     methods: {
+      getCurrentStudent () {
+        this.$axios.get(this.currentStudentUrl).then((res) => {
+          this.currentStudent = res.data
+        })
+      },
       getLabs () {
         this.$axios.get(this.labsUrl).then((res) => {
           this.labs = res.data
@@ -199,15 +219,22 @@
                 value: this.currentLab.audit
               }
             ]
+            this.labStatusLog = null
             // 查询实验室状态
             this.getLabStatusMap(this.currentLabName)
           } else {
             // 查询实验室状态
             this.getLabStatusMap(this.labs[0].name)
             this.currentLab = null
+            this.getCurrentLog()
           }
         }).catch((error) => {
           console.debug(error.response)
+        })
+      },
+      getCurrentLog () {
+        this.$axios.get(this.labStatusLogUrl).then((res) => { // 查询审核日志
+          this.labStatusLog = res.data.content
         })
       },
       getTeachers () {
@@ -223,6 +250,20 @@
       },
       onCheckerItemClick (itemValue, itemDisabled) {
         if (!itemDisabled) {
+          if (this.currentStudent.isDisable) {
+            this.$vux.alert.show({
+              title: '禁止预约',
+              content: '因取消了通过审核的预约，你已被禁止在' + this.currentStudent.disableDateTime + '之前进行预约实验室！'
+            })
+            return
+          }
+          if (this.currentLab && this.currentLab.audit === '通过') {
+            this.$vux.alert.show({
+              title: '重新预约',
+              content: '你预约的【' + this.currentLabName + '】实验室已经通过审核，不能重新预约其他实验室！'
+            })
+            return
+          }
           if (this.currentLabName) {
             const _this = this
             this.$vux.confirm.show({
@@ -230,7 +271,7 @@
               content: '你已经预约了【' + this.currentLabName + '】，确定要取消并重新预约其他实验室？',
               // 组件除show外的属性
               onCancel () {
-                _this.getCurrent()// 刷新选课状态
+                _this.getLabs()// 刷新选课状态
               },
               onConfirm () {
                 _this.showTeacher = true
@@ -249,6 +290,7 @@
         this.chooseLab = null
         this.teacher = null
         this.showTeacher = false
+        this.getLabs()// 刷新选课状态
       },
       confirmTeacher () {
         if (!this.teacher) {
@@ -283,7 +325,7 @@
         this.chooseLab = null
         this.teacher = null
         this.$axios.put(this.labStatusUrl, this.form).then((res) => {
-          this.getCurrent()// 刷新选课状态
+          this.getLabs()// 刷新选课状态
           this.$vux.toast.text(res.data)
         }).catch((error) => {
           console.debug(error.response)

@@ -5,15 +5,17 @@ import FastClick from 'fastclick'
 import VueRouter from 'vue-router'
 import App from './App'
 import axios from 'axios'
-import { ToastPlugin, LoadingPlugin, ConfirmPlugin } from 'vux'
+import { ToastPlugin, LoadingPlugin, ConfirmPlugin, AlertPlugin } from 'vux'
 
-Vue.prototype.$baseUrl = 'http://127.0.0.1:8080'
+// Vue.prototype.$baseUrl = 'http://127.0.0.1:8080'
+Vue.prototype.$baseUrl = ''
 Vue.prototype.$axios = axios
 Vue.use(VueRouter)
 
 Vue.use(ToastPlugin)
 Vue.use(LoadingPlugin)
 Vue.use(ConfirmPlugin)
+Vue.use(AlertPlugin)
 
 const routes = [{
   path: '/',
