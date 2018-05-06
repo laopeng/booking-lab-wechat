@@ -53,6 +53,7 @@
       addStudent () {
         this.$axios.post(this.addUrl, this.form).then((res) => {
           this.$vux.toast.text('资料绑定微信成功，开始使用。')
+          sessionStorage.setItem('token', null)
           this.$router.push('/lab')
         }).catch((error) => {
           console.debug(error.response)
