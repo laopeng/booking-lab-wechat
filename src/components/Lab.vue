@@ -1,8 +1,7 @@
 <template>
   <div>
     <tab :line-width=2 active-color='#fc378c ' v-model="index">
-      <tab-item class="vux-center" :selected="currentLabName === item.name" v-for="(item, index) in labs" :key="index"
-                @on-item-click="onItemClick">
+      <tab-item class="vux-center" :selected="currentLabName === item.name" v-for="(item, index) in labs" :key="index">
         {{item.name}}
       </tab-item>
     </tab>
@@ -175,6 +174,11 @@
       this.getLabs()
       this.getTeachers()
     },
+    watch: {
+      index: function (val) {
+        this.getLabStatusMap(this.labs[val].name)
+      }
+    },
     methods: {
       getCurrentStudent () {
         this.$axios.get(this.currentStudentUrl).then((res) => {
@@ -224,7 +228,7 @@
             this.getLabStatusMap(this.currentLabName)
           } else {
             // 查询实验室状态
-            this.getLabStatusMap(this.labs[0].name)
+            this.getLabStatusMap(this.labs[this.index].name)
             this.currentLab = null
             this.getCurrentLog()
           }
@@ -244,9 +248,8 @@
           console.debug(error.response)
         })
       },
-      onItemClick (index) {
+      switchTabItem (index) {
         console.log('on item click:', index)
-        this.getLabStatusMap(this.labs[index].name)
       },
       onCheckerItemClick (itemValue, itemDisabled) {
         if (!itemDisabled) {
@@ -343,7 +346,7 @@
 
   .item {
     color: green;
-    width: 30%;
+    width: 29.5%;
     height: 48px;
     line-height: 48px;
     text-align: center;
