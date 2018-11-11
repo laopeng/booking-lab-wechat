@@ -7,9 +7,15 @@ import App from './App'
 import axios from 'axios'
 import { ToastPlugin, LoadingPlugin, ConfirmPlugin, AlertPlugin } from 'vux'
 
-// Vue.prototype.$baseUrl = 'http://127.0.0.1:8080'
-Vue.prototype.$baseUrl = 'http://hlmr.ltd'
+// Vue.prototype.$baseUrl = 'http://hlmr.ngrok.xiaomiqiu.cn'
+Vue.prototype.$baseUrl = 'http://lab.hlmr.ltd'
 // Vue.prototype.$baseUrl = ''
+// Vue.prototype.$wxUrl = 'https://open.weixin.qq.com/connect/oauth2/authorize' +
+//   '?appid=wx9c6eb91e9f9af205&redirect_uri=' + Vue.prototype.$baseUrl + '/wechat/index.html' +
+//   '&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect'
+Vue.prototype.$wxUrl = 'https://open.weixin.qq.com/connect/oauth2/authorize' +
+  '?appid=wxcacab1dfed5bc106&redirect_uri=' + Vue.prototype.$baseUrl + '/wechat/index.html' +
+  '&response_type=code&scope=snsapi_base&state=STATE#wechat_redirect'
 Vue.prototype.$axios = axios
 Vue.use(VueRouter)
 
@@ -24,7 +30,7 @@ const routes = [{
 }, {
   path: '/lab',
   component: resolve => require(['./components/Lab'], resolve),
-  meta: {requiresAuth: true}
+  meta: { requiresAuth: true }
 }, {
   path: '/register',
   component: resolve => require(['./components/Register'], resolve)
@@ -42,7 +48,7 @@ router.beforeEach((to, from, next) => {
     } else {
       next({
         path: '/',
-        query: {openid: sessionStorage.getItem('openid')}
+        query: { openid: sessionStorage.getItem('openid') }
       })
     }
   } else {
@@ -87,7 +93,7 @@ axios.interceptors.response.use(response => {
         sessionStorage.removeItem('token')
         router.replace({
           path: '/?openid=' + sessionStorage.getItem('openid'),
-          query: {redirect: router.currentRoute.fullPath}
+          query: { redirect: router.currentRoute.fullPath }
         })
         break
       case 403:
